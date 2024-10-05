@@ -1,6 +1,15 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from sunrise_sunset import data
+import urllib
+import urllib.request
+import ast 
+import datetime as dt
+import meteomatics.api as api
+
+
+
 
 def calc_aoe(date_time, longitude=50.6, latitude=-3.8):
         """
@@ -56,51 +65,75 @@ def calc_aoe(date_time, longitude=50.6, latitude=-3.8):
 
 def east_or_west(df):
     def filter_by_day(df, day):
-        day_df = df[df["TMSTAMP"].dt.date == pd.to_datetime(day).dt.date]
-        solar_max_time = day_df[day_df["Solar Elevation"] == day_df["Solar Elevation"].max()]["TMSTAMP"]
+        day_df = df[df["TMSTAMP"].dt.date == pd.to_datetime(day).date()].copy()
+        solar_max_elevation = day_df["Solar Elevation"].max()
+        solar_max_time = get_solar_noon()
+    
+        max_elevation = pd.to_datetime(str(day)+' '+str(solar_max_time)[:-3])
+
+
         conditions = [
-            (df["TMSTAMP"] <= solar_max_time),
-            (df["TMSTAMP"] > solar_max_time)
+            (day_df["TMSTAMP"] <= solar_max_time),
+            (day_df["TMSTAMP"] > solar_max_time)
         ]
 
         choices = ["east", "west"]
 
-        day_df["direction"] = np.select(conditions, choices, default=np.nan)
+        day_df["direction"] = np.select(conditions, choices, default="NaN")
+
+
+        fig,ax = plt.subplots()
+        ax.plot(day_df["TMSTAMP"], day_df["Solar Elevation"])
+        ax.vlines(max_elevation, 0, 90, color = "black")
+        plt.show()
         
         return day_df
     
-    all_days_df = pd.DataFrame
+    all_days_df = pd.DataFrame()
     for day in df["TMSTAMP"].dt.date.unique():
-         print("yes")
          this_day_df = filter_by_day(df,day)
-         all_days_df = pd.concat(all_days_df,this_day_df)
+         all_days_df = pd.concat([all_days_df,this_day_df])
 
-
-    print(all_days_df)
     return all_days_df
+
+def get_solar_noon():
+    
+    url_base = "https://api.sunrise-sunset.org/json?"
+    lat = 50.576710 # Example Lat 
+    long = -3.811770 # Example Long 
+    date = "2024-02-22"
+
+    test = urllib.request.urlopen("https://api.sunrise-sunset.org/json?lat=50.576710&lng=-3.811770&date="+date)
+
+    data = ast.literal_eval(test.read().decode())
+
+    return data["results"]["solar_noon"]
+
+def get_solar_elevation():
+    startdate_ts = dt.datetime(2024, 2, 22, 0, 0)
+    enddate_ts = startdate_ts + dt.timedelta(days=1)
+    interval_ts = dt.timedelta(minutes=1)
+    coordinates_ts = [(50.5766888,-3.8117336)]
+    parameters_ts = ['uv:idx', 'sun_elevation:d']
+    username = "carr_luke"
+    password = "50Aq99CDfu"
+
+    print("time series:")
+    try:
+        df_ts = api.query_time_series(coordinates_ts, startdate_ts, enddate_ts, interval_ts,
+                                    parameters_ts, username, password)
+        df_ts["TMSTAMP"] = pd.date_range(startdate_ts, enddate_ts, freq='min')
+
+
+    except Exception as e:
+        print("Failed, the exception is {}".format(e))
+    
+    return df_ts
+    
+
+def main():
+     df = get_solar_elevation()
+     df = df.rename(columns={"sun_elevation:d": "Solar Elevation"})
+     df = east_or_west(df)
         
-    
-
-def hackathon():
-    now = pd.to_datetime("2024-10-01")
-    start = pd.to_datetime("2023-01-01")
-    minutes = pd.date_range(start, now, freq='min')
-    df = pd.DataFrame({'TMSTAMP': minutes})
-    
-    aoe_list = []
-    st_list = []
-
-    for entry in df["TMSTAMP"]:
-        res = calc_aoe(entry)
-        aoe_list.append(res[0])
-        st_list.append(res[1])
-
-    df["Solar Elevation"] = aoe_list
-    df = east_or_west(df)
-    df = df[df["TMSTAMP"] == pd.to_datetime("2024-02-03 7:00:00")]
-    print(df)
-    plt.plot(df["TMSTAMP"], df["Solar Elevation"])
-    plt.show()
-    print(df)
-
-hackathon()
+main()
