@@ -80,12 +80,6 @@ def east_or_west(df):
         choices = ["east", "west"]
 
         day_df["direction"] = np.select(conditions, choices, default="NaN")
-
-
-        fig,ax = plt.subplots()
-        ax.plot(day_df["TMSTAMP"], day_df["Solar Elevation"])
-        ax.vlines(max_elevation, 0, 90, color = "black")
-        plt.show()
         
         return day_df
     
@@ -96,7 +90,7 @@ def east_or_west(df):
 
     return all_days_df
 
-def get_solar_noon():
+def get_solar_noon(date = "2024-02-22"):
     
     url_base = "https://api.sunrise-sunset.org/json?"
     lat = 50.576710 # Example Lat 
@@ -109,16 +103,15 @@ def get_solar_noon():
 
     return data["results"]["solar_noon"]
 
-def get_solar_elevation():
-    startdate_ts = dt.datetime(2024, 2, 22, 0, 0)
+def get_solar_elevation(choice = dt.datetime(2024, 2, 22, 0, 0), coordinates_ts = [(50.5766888,-3.8117336)]):
+    startdate_ts = choice
     enddate_ts = startdate_ts + dt.timedelta(days=1)
     interval_ts = dt.timedelta(minutes=1)
-    coordinates_ts = [(50.5766888,-3.8117336)]
-    parameters_ts = ['uv:idx', 'sun_elevation:d']
+    parameters_ts = ['uv:idx', 'sun_elevation:d', 'sun_azimuth:d']
+    
     username = "carr_luke"
     password = "50Aq99CDfu"
 
-    print("time series:")
     try:
         df_ts = api.query_time_series(coordinates_ts, startdate_ts, enddate_ts, interval_ts,
                                     parameters_ts, username, password)
@@ -131,9 +124,18 @@ def get_solar_elevation():
     return df_ts
     
 
+
 def main():
-     df = get_solar_elevation()
-     df = df.rename(columns={"sun_elevation:d": "Solar Elevation"})
-     df = east_or_west(df)
+    choice = input("What date would you like to get the solar elevation for? (YYYY-MM-DD)")
+    s_noon = get_solar_noon(choice)
+    choice = dt.datetime.strptime(choice, "%Y-%m-%d")
+    df = get_solar_elevation(choice)
+    df = df.rename(columns={"sun_elevation:d": "Solar Elevation", "sun_azimuth:d": "Solar Azimuth"})
+    df = east_or_west(df)
+    
+    print(df.head())
+    print("Solar Noon: ", s_noon)
+    
+    
         
 main()
