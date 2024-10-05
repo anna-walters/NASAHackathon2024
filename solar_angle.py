@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot
+import matplotlib.pyplot as plt
 
 def calc_aoe(date_time, longitude=50.6, latitude=-3.8):
         """
@@ -54,12 +54,38 @@ def calc_aoe(date_time, longitude=50.6, latitude=-3.8):
         H = np.arcsin(SINH)
         return np.degrees(H), ST
 
+def east_or_west(df):
+    def filter_by_day(df, day):
+        day_df = df[df["TMSTAMP"].dt.date == pd.to_datetime(day).dt.date]
+        solar_max_time = day_df[day_df["Solar Elevation"] == day_df["Solar Elevation"].max()]["TMSTAMP"]
+        conditions = [
+            (df["TMSTAMP"] <= solar_max_time),
+            (df["TMSTAMP"] > solar_max_time)
+        ]
+
+        choices = ["east", "west"]
+
+        day_df["direction"] = np.select(conditions, choices, default=np.nan)
+        
+        return day_df
+    
+    all_days_df = pd.DataFrame
+    for day in df["TMSTAMP"].dt.date.unique():
+         print("yes")
+         this_day_df = filter_by_day(df,day)
+         all_days_df = pd.concat(all_days_df,this_day_df)
+
+
+    print(all_days_df)
+    return all_days_df
+        
+    
+
 def hackathon():
-    now = datetime.datetime.now()
-    start = datetime.datetime(2024, 1, 1)
-    minutes = pd.date_range(start, now, freq='T')
+    now = pd.to_datetime("2024-10-01")
+    start = pd.to_datetime("2023-01-01")
+    minutes = pd.date_range(start, now, freq='min')
     df = pd.DataFrame({'TMSTAMP': minutes})
-    print(df)
     
     aoe_list = []
     st_list = []
@@ -70,8 +96,11 @@ def hackathon():
         st_list.append(res[1])
 
     df["Solar Elevation"] = aoe_list
+    df = east_or_west(df)
     df = df[df["TMSTAMP"] == pd.to_datetime("2024-02-03 7:00:00")]
     print(df)
     plt.plot(df["TMSTAMP"], df["Solar Elevation"])
     plt.show()
     print(df)
+
+hackathon()
