@@ -70,7 +70,6 @@ def get_solar_elevation(choice = dt.datetime(2024, 2, 22, 0, 0), coordinates_ts 
 
 def main():
     choice = input("What date would you like to get the solar elevation for? (YYYY-MM-DD)")
-    time = input("What time would you like to get the solar elevation for? (HH:MM:00)")
 
     s_noon = get_solar_noon(choice)
     choice_noon = pd.to_datetime(choice +' ' + s_noon)
@@ -80,10 +79,15 @@ def main():
     df = df.rename(columns={"sun_elevation:d": "Solar Elevation", "sun_azimuth:d": "Solar Azimuth"})
 
     df = east_or_west(df,choice_noon)
-    df = df[df["TMSTAMP"].dt.time == dt.datetime.strptime(time, "%H:%M:%S").time()]
-
-    print("Angle from North:", df["Solar Azimuth"].iloc[0],"Angle from Ground:", df["Solar Elevation"].iloc[0], "Direction:", df["direction"].iloc[0])
+    df = df[df["Solar Elevation"] > 0]
     
+    df.set_index("TMSTAMP", inplace=True)
+
+    df = df[["Solar Elevation", "Solar Azimuth"]].resample('1h').mean()
+    df["Solar Elevation"] = df["Solar Elevation"].round()
+    df["Solar Azimuth"] = df["Solar Azimuth"].round()
+    print(df)
+
     
         
 main()
