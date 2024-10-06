@@ -9,60 +9,6 @@ import datetime as dt
 import meteomatics.api as api
 
 
-
-
-def calc_aoe(date_time, longitude=50.6, latitude=-3.8):
-        """
-        Args:
-            longitude: float, longitude of location in degrees
-            latitude: float, latitude of location in degrees
-            day: int, day of year
-            minute: int, minute of day
-        Returns:
-            ModH: float, angle of elevation of sun corrected for refraction in degrees
-        """
-        # Angle of Day in radians
-        day = date_time.dayofyear
-        minute = date_time.minute
-
-        # day: 1 = Jan 1st. 365 = Dec 31st. Assumed that Feb has 28 days.
-        D = 2 * np.pi * (day - 1) / 365
-
-        # Equation of Time
-        ET = 229.18 * (
-            0.000075
-            + (0.001868 * np.cos(D))
-            - (0.032077 * np.sin(D))
-            - (0.014615 * np.cos(2 * D))
-            - (0.040849 * np.sin(2 * D))
-        )
-        # Solar Time
-        ST = date_time + pd.Timedelta(minutes=4 * (np.abs(longitude)) + ET)
-
-        # Hour Angle in Radians
-        HA = 2 * np.pi * (ST.hour * 60 + ST.minute + ST.second / 60 - 720) / 1440
-
-        # Declination of day (degrees)
-        DEC = (180 / np.pi) * (
-            0.006918
-            - (0.399912 * np.cos(D))
-            + (0.070257 * np.sin(D))
-            - (0.006758 * np.cos(2 * D))
-            + (0.000907 * np.sin(2 * D))
-            - (0.002697 * np.cos(3 * D))
-            + (0.00148 * np.sin(3 * D))
-        )
-        LA = latitude
-
-        # sine of angle of elevation of sun throughout day
-
-        SINH = (np.sin(np.radians(LA)) * np.sin(np.radians(DEC))) + (
-            np.cos(np.radians(DEC)) * np.cos(np.radians(LA)) * np.cos((HA))
-        )
-        # angle of elevation uncorrected for refraction
-        H = np.arcsin(SINH)
-        return np.degrees(H), ST
-
 def east_or_west(df,noon):
     def filter_by_day(df, day):
         day_df = df[df["TMSTAMP"].dt.date == pd.to_datetime(day).date()].copy()
@@ -125,13 +71,17 @@ def get_solar_elevation(choice = dt.datetime(2024, 2, 22, 0, 0), coordinates_ts 
 def main():
     choice = input("What date would you like to get the solar elevation for? (YYYY-MM-DD)")
     time = input("What time would you like to get the solar elevation for? (HH:MM:00)")
+
     s_noon = get_solar_noon(choice)
     choice_noon = pd.to_datetime(choice +' ' + s_noon)
     choice = dt.datetime.strptime(choice, "%Y-%m-%d")
+
     df = get_solar_elevation(choice)
     df = df.rename(columns={"sun_elevation:d": "Solar Elevation", "sun_azimuth:d": "Solar Azimuth"})
+
     df = east_or_west(df,choice_noon)
     df = df[df["TMSTAMP"].dt.time == dt.datetime.strptime(time, "%H:%M:%S").time()]
+
     print("Angle from North:", df["Solar Azimuth"].iloc[0],"Angle from Ground:", df["Solar Elevation"].iloc[0], "Direction:", df["direction"].iloc[0])
     
     
