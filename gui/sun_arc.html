@@ -1,0 +1,65 @@
+<link
+  rel="stylesheet"
+  href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css"
+>
+
+<nav style="text-align: center; padding: 3%">
+    <ul>
+      <li><strong>SolarWalk</strong></li>
+    </ul>
+    <ul>
+      <li><a href="index.html">Solar Walk</a></li>
+      <li><a href="#">Solar Arc</a></li>
+      <li><a href="solar_projection.html">Solar Projection</a></li>
+      <li><a href="solar_model.html">Solar Model</a></li>
+    </ul>
+  </nav>
+
+<h1 style="text-align: center; padding: 3%">SolarArc</h1>
+
+
+
+<body>
+    <main class="container">
+
+        <p>Use this page alongside your SolarWalk Model to view projected shadows and shade.</p>
+
+        <input type="text" name="location" placeholder="Widecombe in the Moor" aria-label="Text">
+
+        <label>
+            <p>Select the year</p>
+            <input type="range" />
+        </label>
+
+        <form>
+
+            <select name="month" aria-label="Please select the month" required>
+                <option selected disabled value="">
+                    Please select the month
+                </option>
+                <option>January</option>
+                <option>February</option>
+                <option>March</option>
+                <option>April</option>
+                <option>May</option>
+                <option>June</option>
+                <option>July</option>
+                <option>August</option>
+                <option>September</option>
+                <option>October</option>
+                <option>November</option>
+                <option>December</option>
+            </select>
+
+            <label>
+                <p>Select the day</p>
+                <input type="range" />
+            </label>
+
+            <button type="submit">Calculate!</button>
+        </form>
+
+    </main>
+
+
+</body>
