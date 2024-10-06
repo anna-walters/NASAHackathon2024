@@ -63,18 +63,16 @@ def calc_aoe(date_time, longitude=50.6, latitude=-3.8):
         H = np.arcsin(SINH)
         return np.degrees(H), ST
 
-def east_or_west(df):
+def east_or_west(df,noon):
     def filter_by_day(df, day):
         day_df = df[df["TMSTAMP"].dt.date == pd.to_datetime(day).date()].copy()
-        solar_max_elevation = day_df["Solar Elevation"].max()
-        solar_max_time = get_solar_noon()
     
-        max_elevation = pd.to_datetime(str(day)+' '+str(solar_max_time)[:-3])
+        #max_elevation = pd.to_datetime(str(day)+' '+str(solar_max_time)[:-3])
 
 
         conditions = [
-            (day_df["TMSTAMP"] <= solar_max_time),
-            (day_df["TMSTAMP"] > solar_max_time)
+            (day_df["TMSTAMP"] <= noon),
+            (day_df["TMSTAMP"] > noon)
         ]
 
         choices = ["east", "west"]
@@ -87,7 +85,7 @@ def east_or_west(df):
     for day in df["TMSTAMP"].dt.date.unique():
          this_day_df = filter_by_day(df,day)
          all_days_df = pd.concat([all_days_df,this_day_df])
-
+    
     return all_days_df
 
 def get_solar_noon(date = "2024-02-22"):
@@ -95,7 +93,6 @@ def get_solar_noon(date = "2024-02-22"):
     url_base = "https://api.sunrise-sunset.org/json?"
     lat = 50.576710 # Example Lat 
     long = -3.811770 # Example Long 
-    date = "2024-02-22"
 
     test = urllib.request.urlopen("https://api.sunrise-sunset.org/json?lat=50.576710&lng=-3.811770&date="+date)
 
@@ -127,14 +124,15 @@ def get_solar_elevation(choice = dt.datetime(2024, 2, 22, 0, 0), coordinates_ts 
 
 def main():
     choice = input("What date would you like to get the solar elevation for? (YYYY-MM-DD)")
+    time = input("What time would you like to get the solar elevation for? (HH:MM:00)")
     s_noon = get_solar_noon(choice)
+    choice_noon = pd.to_datetime(choice +' ' + s_noon)
     choice = dt.datetime.strptime(choice, "%Y-%m-%d")
     df = get_solar_elevation(choice)
     df = df.rename(columns={"sun_elevation:d": "Solar Elevation", "sun_azimuth:d": "Solar Azimuth"})
-    df = east_or_west(df)
-    
-    print(df.head())
-    print("Solar Noon: ", s_noon)
+    df = east_or_west(df,choice_noon)
+    df = df[df["TMSTAMP"].dt.time == dt.datetime.strptime(time, "%H:%M:%S").time()]
+    print("Angle from North:", df["Solar Azimuth"].iloc[0],"Angle from Ground:", df["Solar Elevation"].iloc[0], "Direction:", df["direction"].iloc[0])
     
     
         
